@@ -1,0 +1,192 @@
+---
+title: "RBSI RP-H1"
+author: "Sevastian Sanchez"
+date: "2023-06-23"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+
+## Set working directory
+rm(list=ls())
+# Write your working directory
+setwd("~/Desktop/RBSI - R Files/RESEARCH/DATA")
+
+knitr::opts_chunk$set(echo = TRUE)
+library(haven)
+library(dplyr)
+library(tidyr)
+library(stargazer)
+library(readr)
+library(ggplot2)
+library(stringr)
+
+```
+
+## R Markdown
+
+```{r load data}
+# V_dem & innovation -- standardized 
+finaldf <- read.csv("finaldf.csv")
+
+# Standarize the varibles into normal distributions
+finaldf <- finaldf %>% mutate(nonres_pat_z = scale(nonres_pat),
+                              res_pat_z = scale(res_pat),
+                              journal_art_z = scale(journal_art),
+                              libdem_diff = v2x_libdem-libdem2017)
+#remove irrelavent columns
+finaldf <- finaldf[-c(14, 17)]
+
+```
+
+H1: Academic freedom correlation to innovation, Regime type-constant
+
+```{r H1a,b}
+
+# AFI(x) - patent apps-non-residents(y) (Innov) correlation
+
+AFI_Innov1 <- lm(finaldf$res_pat_z ~ finaldf$v2xca_academ + finaldf$v2x_regime_amb + finaldf$e_gdppc + finaldf$e_wb_pop)
+
+# AFI(x) - patent apps-residents(y) (Innov) correlation
+AFI_Innov2 <- lm(finaldf$nonres_pat_z ~ finaldf$v2xca_academ + finaldf$v2x_regime_amb + finaldf$e_gdppc + finaldf$e_wb_pop)
+
+# AFI(x) - journal_art(y) (Innov) correlation
+
+AFI_Innov3 <- lm(finaldf$journal_art_z ~ finaldf$v2xca_academ + finaldf$v2x_regime_amb + finaldf$e_gdppc + finaldf$e_wb_pop)
+
+stargazer(AFI_Innov1, AFI_Innov2, AFI_Innov3, title = "Academic Freedom Effects on Different Innovation Variables, holding regime type constant", type ="text")
+
+```
+
+```{r SUBSETTING}
+#ACADEMIC FREEDOM EFFECT ON INNOVATION WITHIN AUTOCRACIES 
+
+finaldf.auto <- subset(finaldf, v2xca_academ <= 5)
+
+AFI_Innov1.auto <- lm(res_pat_z ~ v2xca_academ + e_gdppc + e_wb_pop, data= finaldf.auto)
+AFI_Innov2.auto <- lm(nonres_pat_z ~ v2xca_academ +  e_gdppc + e_wb_pop, data= finaldf.auto)
+AFI_Innov3.auto <- lm(journal_art_z ~ v2xca_academ + e_gdppc + e_wb_pop, data= finaldf.auto)
+
+stargazer(AFI_Innov1.auto, AFI_Innov2.auto, AFI_Innov3.auto, title = "Academic freedom effects on different innovation variables in autocratic regimes, holding regime type constant", type = "text")
+```
+
+
+```{r load data}
+# V_dem & innovation -- standardized 
+finaldf <- read.csv("finaldf.csv")
+
+# Standarize the varibles into normal distributions
+finaldf <- finaldf %>% mutate(nonres_pat_z = scale(nonres_pat),
+                              res_pat_z = scale(res_pat),
+                              journal_art_z = scale(journal_art),
+                              libdem_diff = v2x_libdem-libdem2017)
+#remove irrelavent columns
+finaldf <- finaldf[-c(14, 17)]
+```
+
+H2: Regime type correlation with innovation 
+```{r H2}
+# H2a
+# LDem(x) - patent apps-residents(y) (Innov) correlation
+
+LDem_Innov1 <- lm(finaldf$res_pat_z ~ finaldf$v2x_libdem + finaldf$v2xca_academ + finaldf$e_gdppc + finaldf$e_wb_pop)
+
+# LDem_Innov1.1 [v2x_regime_amb]
+LDem_Innov1.1 <- lm(finaldf$res_pat_z ~ finaldf$v2x_regime_amb + finaldf$v2xca_academ + finaldf$e_gdppc + finaldf$e_wb_pop)
+```
+H2: Regime type correlation with innovation 
+```{r}
+# H2b
+# LDem(x) - patent apps-nonresidents(y) (Innov) correlation
+
+LDem_Innov2 <- lm(finaldf$nonres_pat_z ~ finaldf$v2x_libdem + finaldf$v2xca_academ + finaldf$e_gdppc + finaldf$e_wb_pop)
+
+#LDem_Innov2.1 [v2x_regime_amb]
+LDem_Innov2.1 <- lm(finaldf$nonres_pat_z ~ finaldf$v2x_regime_amb + finaldf$v2xca_academ + finaldf$e_gdppc + finaldf$e_wb_pop)
+```
+H2: Regime type correlation with innovation 
+```{r}
+# H2c
+# LDem(x) - sciarticles(y) (Innov) correlation
+LDem_Innov3 <- lm(finaldf$journal_art_z ~ finaldf$v2x_libdem + finaldf$v2xca_academ + finaldf$e_gdppc + finaldf$e_wb_pop)
+
+#LDem_Innov3.1 [v2x_regime_amb]
+LDem_Innov3.1 <- lm(finaldf$journal_art_z ~ finaldf$v2x_regime_amb + finaldf$v2xca_academ + finaldf$e_gdppc + finaldf$e_wb_pop)
+
+stargazer(LDem_Innov1, LDem_Innov2, LDem_Innov3, title = "Effect of Democracy Score (Liberal Democracy Score) on Different Innovation Measures, holding academic freedom constant", type ="text")
+
+stargazer(LDem_Innov1.1, LDem_Innov2.1, LDem_Innov3.1, title = "Effect of Regime Type (Regimes of the World - Ambiguous) on Different Innovation Measures, holding academic freedom constant", type ="text")
+summary(LDem_Innov3)
+```
+```{r insert and clean_Data}
+# VARS = GDP, Population, AFI, Liberal Democracy Index, RoW(ambiguous) Index, country_name, country_id, country_code, year, y2015-2022, y2015, y2018
+
+vdem_recent <- read.csv("vdem_recent.csv")
+names(vdem_recent)[names(vdem_recent) == "y2015_2021"] <- "y2015_2022"
+
+## Identify the variables you need (independent, dependent, and controls)...
+
+# Regime Type (x) = Independent var (V-dem Democracy indices)
+# Academic Freedom (y) = Dependent var (Academic Freedom Index)
+
+# Academic Freedom (x) = Independent var
+# Scientific Innovation (y) = Dependent var
+
+```
+
+H3: FINDING OVERALL VARIATION: RECENT DATA - 1980-2021
+```{r across regimes}
+
+##### Using 'v2x_libdem'-- across regimes #####
+m1.all <- lm(v2xca_academ ~ v2x_libdem + e_wb_pop + e_gdppc, data = vdem_recent)
+
+#scatter plot
+m1.all.plot <- plot(vdem_recent$v2xca_academ ~ vdem_recent$v2x_libdem + vdem_recent$e_wb_pop + vdem_recent$e_gdppc,
+                    main = "regime type and academic freedom relationship", 
+                    xlab = "regime type - libdem", 
+                    ylab = "academic freedom")
+
+#correlation - M1
+cor.test(vdem_recent$v2xca_academ, vdem_recent$v2x_libdem + vdem_recent$e_wb_pop + vdem_recent$e_gdppc)
+```
+
+H3: SUBSETTING: FINDING VARIATION AMONG AUTOCRACIES, 1980-2021
+```{r regression, subsetting by regime type}
+#subset for autocracies - scatter plot
+vdem_rec_auto <- subset(vdem_recent, v2x_libdem < 0.51)
+```
+H3: FINDING VARIATION AMONG AUTOCRACIES, 1980-2021
+```{r regression, autocracies & academic freedom, data = vdem_rec_auto1}
+
+##### ROUND 2: Using 'v2x_libdem' #####
+m1.auto <- lm(v2xca_academ ~ v2x_libdem + e_wb_pop + e_gdppc, data = vdem_rec_auto)
+
+#scatter plot 
+m1.auto.plot <- plot(v2xca_academ ~ v2x_libdem + e_wb_pop + e_gdppc, data = vdem_rec_auto,  
+     main = "autocratic regime and academic freedom relationship", 
+     xlab="regime type - libdem", 
+     ylab="academic freedom") 
+
+#correlation - M1
+cor.test(vdem_rec_auto$v2xca_academ, vdem_rec_auto$v2x_libdem + vdem_rec_auto$e_wb_pop + vdem_rec_auto$e_gdppc)
+```
+
+H3: SUBSETTING: FINDING VARIATION AMONG DEMOCRACIES, 1980-2021
+```{r}
+#subset for democracies - scatter plot
+vdem_rec_dem <- subset(vdem_recent, v2x_libdem > 0.49)
+```
+
+H3: FINDING VARIATION AMONG DEMOCRACIES, 1980-2021
+```{r regression, democracies & academic freedom, data = vdem_rec_dem}
+
+m1.dem <- lm(v2xca_academ ~ v2x_libdem + e_wb_pop + e_gdppc, data = vdem_rec_dem)
+
+# scatterplot
+m1.dem.plot <- plot(v2xca_academ ~ v2x_libdem + e_wb_pop + e_gdppc, data = vdem_rec_dem,
+     main = "democracies and academic freedom relationship", 
+     xlab="regime type - libdem(>0.5)", 
+     ylab="academic freedom")
+
+stargazer(m1.all, m1.dem, title="All, Autocratic, and Democratic Regimes", type ="text")
+```
