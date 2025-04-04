@@ -1,0 +1,209 @@
+---
+title: "NewProjRBSI"
+author: "Sevastian Sanchez"
+date: "2023-08-17"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(stargazer)
+library(car)
+```
+
+# H1: Research Question: Is academic freedom affected by regime transition? 
+# What is the independent variable(x)? Regime transition 
+# What is the dependent variable(y)? Academic Freedom 
+# What is the unit of analysis? Countries experiencing transition 
+
+# Loading, Extracting & Cleaning Data 
+```{r}
+#loading & extracting from vdem dataset
+setwd("~/Desktop/RBSI/RBSI RESEARCH DATA/Democracy Measures")
+vdem.all <-read.csv("V-Dem-CY-Full+Others-v13.csv")
+vdem.all <- select(vdem.all, "country_name", "country_text_id", "year", "v2x_accountability", "v2x_libdem", "v2xca_academ", "e_gdppc", "e_wb_pop")
+
+#loading & extracting from ert dataset
+ert<-read.csv("ert.csv")
+ert <- select(ert, "country_name", "country_text_id", "year", "v2x_regime", "row_regch_event", "reg_type", "reg_trans", "dem_ep", "dem_ep_start_year", "dem_ep_end_year", "aut_ep", "aut_ep_start_year", "aut_ep_end_year")
+
+#Merging & rearranging df dataset
+df<-merge(ert, vdem.all, by = c("year", "country_name", "country_text_id"))
+df<- select(df, "country_name", "country_text_id", "year", "v2x_libdem", "v2xca_academ", "reg_type", "v2x_regime", "reg_trans", "dem_ep", "dem_ep_start_year", "dem_ep_end_year", "aut_ep", "aut_ep_start_year", "aut_ep_end_year", "e_gdppc", "e_wb_pop")
+```
+
+# Background info: 
+```{r}
+#Distribution of all countries that experienced democratization from 1900-2021
+hist(df$year[df$reg_trans==1])
+#Distribution of all countries that experienced democratic backsliding from 1900-2021
+hist(df$year[df$reg_trans==-1])
+#Distribution of all countries that have not experienced change  1900-2021
+hist(df$year[df$reg_trans==0])
+
+#frequency/proportion table: instances of backsliding, stability, democratization from 1900-2021
+table(df$reg_trans) # frequency
+prop.table(table(df$reg_trans)) # proportions 
+```
+
+```{r}
+# The distribution of academic freedom for countries that have undergone democratic backsliding 
+hist(df$v2xca_academ[df$reg_trans==-1], breaks = 10)
+# The distribution of academic freedom for countries that have not experienced change 
+hist(df$v2xca_academ[df$reg_trans==0], breaks = 10)
+# The distribution of academic freedom for countries that have experienced democratization
+hist(df$v2xca_academ[df$reg_trans==1], breaks = 10)
+```
+
+```{r}
+#average academic freedom at the start year of regime backsliding  
+df_backslide <- subset(df, reg_trans==-1)
+mean(df_backslide$v2xca_academ)
+```
+
+```{r}
+#All countries and their respective periods of regime transition (backsliding or democratizing)
+df_deming <- subset(df, dem_ep==1)
+df_auting <- subset(df, aut_ep==1)
+```
+
+#Evolution Cuban Academic Freedom (during backsliding) - [Connected Linegraph]
+ggplot(df_auting, aes(x=year, y=v2xca_academ)) +
+  geom_line(color="blue", size=1, alpha=1, linetype=1) +
+  geom_point(shape=21, color="black", fill="black", size=.5)
+ggtitle("Evolution Academic Freedom - Regime backsliding")
+
+#CUBA
+```{r}
+#CUBA DataFrame (during backsliding)
+df_cub_aut <- subset(df_auting, country_text_id=="CUB")
+# Cuba - Academic Freedom over time 
+scatterplot(v2xca_academ ~ year, data=df_cub_aut)
+# Cuba - regime change over time 
+scatterplot(v2x_libdem ~ year, data=df_cub_aut)
+# Cuba - Regime change & Academic Freedom 
+scatterplot(v2xca_academ ~ v2x_libdem, data=df_cub_aut)
+```
+
+
+```{r}
+#Evolution Cuban Academic Freedom (during backsliding) -  [Connected Linegraph]
+ggplot(df_cub_aut, aes(x=year, y=v2xca_academ)) +
+  geom_line(color="blue", size=1, alpha=1, linetype=1) +
+  geom_point(shape=21, color="black", fill="black", size=.5)
+ggtitle("Evolution Cuban Academic Freedom - Regime transition")
+
+#Evolution Cuban Academic Freedom & Democracy (during backsliding) [Connected Linegraph]
+plot(df_cub_aut$v2xca_academ, type="o", main ="testing", xlab="year", ylab="Academic Freedom", col="blue", ylim=c(0, 1.0))
+lines(df_cub_aut$v2x_libdem, ylab="Liberal Democracy", col="black")
+
+#CUBA DataFrame (all time)
+df_cub <- subset(df, country_text_id=="CUB")
+# Cuba - Academic Freedom over time 
+scatterplot(v2xca_academ ~ year, data=df_cub)
+# Cuba - regime change over time 
+scatterplot(v2x_libdem ~ year, data=df_cub)
+# Cuba - Regime change & Academic Freedom 
+scatterplot(v2xca_academ ~ v2x_libdem, data=df_cub)
+
+#Evolution Cuban Academic Freedom - 1900-2021 (all time) [Connected Linegraph]
+ggplot(df_cub, aes(x=year, y=v2xca_academ)) +
+  geom_line(color="blue", size=1, alpha=1, linetype=1) +
+  geom_point(shape=21, color="black", fill="black", size=.5)
+ggtitle("Evolution Cuban Academic Freedom")
+
+#Evolution Cuban Academic Freedom & Democracy - 1900-2021 (all time)[Connected Linegraph]
+plot(df_cub$v2xca_academ, type="o", main ="testing", xlab="year", ylab="Academic Freedom", col="blue", ylim=c(0, 1.0))
+lines(df_cub$v2x_libdem, ylab="Liberal Democracy", col="black")
+```
+
+#SPAIN
+```{r}
+# SPAIN DataFrame (during backsliding)
+df_esp_aut <- subset(df_auting, country_text_id=="ESP")
+# Mexico - Academic Freedom over time 
+scatterplot(v2xca_academ ~ year, data=df_esp_aut)
+# Mexico - regime change over time 
+scatterplot(v2x_libdem ~ year, data=df_esp_aut)
+# Mexico - Regime change & Academic Freedom 
+scatterplot(v2x_libdem ~ v2xca_academ, data=df_esp_aut)
+
+#Evolution Spanish Academic Freedom (during backsliding) [Connected Linegraph]
+ggplot(df_esp_aut, aes(x=year, y=v2xca_academ)) +
+  geom_line(color="red", size=1, alpha=1, linetype=1) +
+  geom_point(shape=21, color="black", fill="black", size=.5)
+ggtitle("Evolution Spanish Academic Freedom")
+
+#Evolution Spanish Academic Freedom & Democracy (during backsliding) [Connected Linegraph]
+plot(df_esp_aut$v2xca_academ, type="o", main ="Evolution Spanish Academic Freedom & Democracy during regime change", xlab="year", ylab="Academic Freedom", col="red", ylim=c(0, 1.0))
+lines(df_esp_aut$v2x_libdem, ylab="Liberal Democracy", col="black")
+
+# SPAIN DataFrame (all time)
+df_esp <- subset(df, country_text_id=="ESP")
+# Mexico - Academic Freedom over time 
+scatterplot(v2xca_academ ~ year, data=df_esp)
+# Mexico - regime change over time 
+scatterplot(v2x_libdem ~ year, data=df_esp)
+# Mexico - Regime change & Academic Freedom 
+scatterplot(v2x_libdem ~ v2xca_academ, data=df_esp)
+
+#Evolution Spanish Academic Freedom - 1900-2021 (all time) [Connected Linegraph]
+ggplot(df_esp, aes(x=year, y=v2xca_academ)) +
+  geom_line(color="red", size=1, alpha=1, linetype=1) +
+  geom_point(shape=21, color="black", fill="black", size=.5)
+ggtitle("Evolution Spanish Academic Freedom")
+
+#Evolution Spanish Academic Freedom & Democracy - 1900-2021 (all time) [Connected Linegraph]
+plot(df_esp$v2xca_academ, type="o", main ="testing", xlab="year", ylab="Academic Freedom", col="red", ylim=c(0, 1.0))
+lines(df_esp$v2x_libdem, ylab="Liberal Democracy", col="black")
+```
+
+#MEXICO
+```{r}
+# MEXICO DataFrame
+df_mex <- subset(df, country_text_id=="MEX")
+# Mexico - Academic Freedom over time 
+scatterplot(v2xca_academ ~ year, data=df_mex)
+# Mexico - regime change over time 
+scatterplot(v2x_libdem ~ year, data=df_mex)
+# Mexico - Regime change & Academic Freedom 
+scatterplot(v2x_libdem ~ v2xca_academ, data=df_mex)
+
+#Evolution Mexican Academic Freedom - 1900-2021 [Connected Linegraph]
+ggplot(df_mex, aes(x=year, y=v2xca_academ)) +
+  geom_line(color="green", size=1, alpha=1, linetype=1) +
+  geom_point(shape=21, color="black", fill="black", size=.5)
+ggtitle("Evolution Mexican Academic Freedom")
+
+#Evolution Mexican Academic Freedom & Democracy - 1900-2021 [Connected Linegraph]
+plot(df_mex$v2xca_academ, type="o", main ="testing", xlab="year", ylab="Academic Freedom", col="green", ylim=c(0, 1.0))
+lines(df_mex$v2x_libdem, ylab="Liberal Democracy", col="black")
+```
+
+# H2: Research Question: Is innovation affected by regime transition? 
+# What is the independent variable(x)? Regime transition 
+# What is the dependent variable(y)? Scientific Innovation
+# What is the unit of analysis? Countries experiencing transition 
+## Countries of Interest: USSR/Russia, Chile, Venezuela, Cuba, Spain, Germany, Singapore 
+
+#Including Innovation in Dataframe 
+patentapps.res <- read.csv("patentapps_res.csv")
+hist(df_auting$v2xca_academ[df_auting$year>1980], breaks = 10)
+
+hist(patentapps.res$Country.Code=="ARG", breaks = 10)
+
+patentapps.res1 <- rename(patentapps.res, country_text_id = Country.Code)
+S_T_Jour_Art<- read.csv("SciTechJourArtc.csv")
+S_T_Jour_Art1 <- rename(S_T_Jour_Art, country_text_id = Country.Code)
+df_1 <- merge(df, patentapps.res2, by = "country_text_id")
+df_innov <- merge(df_1, S_T_Jour_Art2, by = "country_text_id")
+View(df_innov)
+
+df<- subset(ert, reg_trans==1 | reg_trans==-1)
